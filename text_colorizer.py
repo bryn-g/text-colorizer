@@ -1,9 +1,7 @@
 import os
 import sys
 import re
-import click
 
-# iro is japanese romanji for color - saves text colors
 class IroList:
     def __init__(self):
         self._iro_list = {}
@@ -25,6 +23,7 @@ class IroList:
     def remove_iro(self, name):
         if name in self._iro_list:
             del self._iro_list[name]
+            self.remove_iro_method(name)
 
     def iro(self, text, name=""):
         if name is "":
@@ -36,6 +35,20 @@ class IroList:
             return f"{pre_code}{text}{post_code}"
 
         return text
+
+    def make_iro_method(self, name, text):
+        def _method(text):
+            self.set_iro = name
+            return f"{self.iro(text, name)}"
+
+        return _method
+
+    def add_iro_method(self, name):
+        _method = self.make_iro_method(name, "text")
+        setattr(self, name, _method)
+
+    def remove_iro_method(self, name):
+        delattr(self, name)
 
 class TermTextColorizer(IroList):
     # format: "\033[{text_code};5;{256_code}m{text}\033[0m"
@@ -81,6 +94,10 @@ class TermTextColorizer(IroList):
             if name in self._iro_list:
                 if self._set_iro is "":
                     self._set_iro = name
+
+                # add method to class
+                self.add_iro_method(name)
+
                 return True
 
         return False
@@ -128,69 +145,10 @@ class ANSITextColorizer(IroList):
             if name in self._iro_list:
                 if self._set_iro is "":
                     self._set_iro = name
+
+                # add method to class
+                self.add_iro_method(name)
+
                 return True
 
         return False
-
-@click.command()
-@click.option(
-    '--text', '-txt',
-    help='example colorizer text'
-)
-@click.option(
-    '--tables', '-t', is_flag=True,
-    help='print ansi color tables'
-)
-def main(text, tables):
-    """
-    A simple script to colorize text using ansi or terminal color codes.
-    """
-
-    ansi_colorizer = ANSITextColorizer()
-    term_colorizer = TermTextColorizer()
-
-    if not ansi_colorizer.is_ansi_supported():
-        print(f"* ansi colors not supported.")
-
-    if tables:
-        ansi_colorizer.print_ansi_color_tables()
-        term_colorizer.print_term_color_table()
-        # term background colors
-        term_colorizer.print_term_color_table(True)
-        exit()
-
-    if text != None:
-        # examples
-        # ansi colorizer
-
-        print(f"text: {text}")
-
-        print("\nansi colorizer examples\n")
-        ansi_colorizer.add_iro("pinkbg", "7;35;47")
-        ansi_colorizer.add_iro("pink", "1;35")
-
-        print(f"ansi_colorizer.iro(text, 'pinkbg'): {ansi_colorizer.iro(text, 'pinkbg')}")
-
-        ansi_colorizer.set_iro = "pink"
-        print(f"ansi_colorizer.set_iro: {ansi_colorizer.set_iro}")
-        print(f"ansi_colorizer.iro(text): {ansi_colorizer.iro(text)}")
-
-        print(f"ansi iro list: {ansi_colorizer.iro_list}")
-
-        # term colorizer
-        print("\nterm colorizer examples\n")
-
-        term_colorizer.add_iro("orange", "172")
-        term_colorizer.add_iro("redbg", "197", True)
-
-        print(f"term_colorizer.iro(text, 'orange'): {term_colorizer.iro(text, 'orange')}")
-        print(f"term_colorizer.iro(text, 'redbg'): {term_colorizer.iro(text, 'redbg')}")
-
-        term_colorizer.set_iro = "orange"
-        print(f"term_colorizer.set_iro: {term_colorizer.set_iro}")
-        print(f"term_colorizer.iro(text): {term_colorizer.iro(text)}")
-
-        print(f"term iro list: {term_colorizer.iro_list}")
-
-if __name__ == "__main__":
-    main()
