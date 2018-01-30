@@ -1,2 +1,2 @@
 # text-colorizer
-Some classes and code to easily colorize terminal text.
+Some classes to easily colorize terminal text.
